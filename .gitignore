@@ -1,0 +1,27 @@
+# Binaries & build files
+/bin
+/build
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test & coverage
+*.out
+coverage.html
+
+# Local environment and storage
+.env
+storage/logs/*.log
+storage/logs/*.gz
+storage/uploads/*
+!storage/logs/.gitkeep
+!storage/uploads/.gitkeep
+
+# IDE & OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
