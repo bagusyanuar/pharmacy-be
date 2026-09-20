@@ -30,6 +30,10 @@ Whenever you are writing, refactoring, or generating code in this repository:
 3. **Cross-Module Boundaries**: NEVER use cross-module GORM relations or `Preload()` across modules. Usecases must depend on foreign repository interfaces and use minimal summary DTOs with batch fetching (`GetByIDs`).
 4. **Use Skill for New Modules**: When asked to add a new entity, module, or feature, execute according to `.agents/skills/go-module-generator/SKILL.md`.
 5. **Use Skill for Commits**: When asked to commit changes or create commit messages, execute according to `.agents/skills/conventional-commit/SKILL.md`.
+6. **Use Skill for Docs Tickets**: When asked to resolve, implement, or work on a ticket from `bagusyanuar/pharmacy-docs`, execute according to `.agents/skills/pharmacy-docs-ticket-resolver/SKILL.md`.
+7. **Use Skill for Branch Creation**: When asked to create, checkout, or start a new git branch for a ticket, execute according to `.agents/skills/ticket-branch-creator/SKILL.md`.
+8. **Use Skill for Brainstorming & Open Questions**: When asked to clarify, brainstorm, or decide implementation methods/libraries for a ticket, execute according to `.agents/skills/ticket-clarifier/SKILL.md`.
+9. **Use Skill for Todo Scaffolding**: When asked to generate a technical todo list or execution plan for a ticket in `docs/todo/`, execute according to `.agents/skills/ticket-todo-generator/SKILL.md`.
 
 ## Rules Index
 
