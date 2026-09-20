@@ -1,0 +1,84 @@
+name: Sync Merged PR to Docs Issue
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  sync_to_docs:
+    name: Sync PR Status & Edge Cases to Docs Issue
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Parse Referenced Issue and Edge Cases
+        id: parse_pr
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          echo "=== Parsing PR Metadata ==="
+
+          # 1. Cari nomor tiket target di pharmacy-docs
+          # Cocokkan 'bagusyanuar/pharmacy-docs#123' atau 'pharmacy-docs#123' atau 'Closes #123'
+          TARGET_ISSUE=$(echo "$PR_BODY" | grep -oE 'pharmacy-docs#[0-9]+' | head -n 1 | cut -d'#' -f2 || true)
+
+          if [ -z "$TARGET_ISSUE" ]; then
+            TARGET_ISSUE=$(echo "$PR_BODY" | grep -oE '(Closes|Fixes|Resolves) *#?[0-9]+' | head -n 1 | grep -oE '[0-9]+' || true)
+          fi
+
+          echo "Found Target Issue: '$TARGET_ISSUE'"
+          echo "target_issue=$TARGET_ISSUE" >> $GITHUB_OUTPUT
+
+          # 2. Ekstrak seksi '💡 Pekerjaan Tambahan / Edge Cases'
+          EDGE_CASES=$(echo "$PR_BODY" | awk '/(💡 Pekerjaan Tambahan|Edge Cases)/{flag=1; next} /^## /{flag=0} flag' | sed '/^[[:space:]]*<!--.*-->[[:space:]]*$/d' | sed '/^[[:space:]]*$/d' || true)
+
+          echo "edge_cases<<EOF" >> $GITHUB_OUTPUT
+          echo "$EDGE_CASES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post Comment to Docs Issue
+        if: steps.parse_pr.outputs.target_issue != ''
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_PAT || secrets.GITHUB_TOKEN }}
+          DOCS_REPO: "bagusyanuar/pharmacy-docs"
+          ISSUE_NUM: ${{ steps.parse_pr.outputs.target_issue }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          EDGE_CASES: ${{ steps.parse_pr.outputs.edge_cases }}
+        run: |
+          echo "Syncing PR #$PR_TITLE to $DOCS_REPO#$ISSUE_NUM..."
+
+          cat << 'EOF' > comment.md
+          ### 🚀 [Backend PR Merged] ${{ env.PR_TITLE }}
+
+          Pekerjaan teknis terkait tiket ini telah berhasil diselesaikan dan di-*merge* ke branch `main` di repositori **`pharmacy-be`**!
+
+          * **Pull Request:** [${{ env.PR_TITLE }}](${{ env.PR_URL }})
+          * **Author:** @${{ env.PR_AUTHOR }}
+          * **Merge Commit:** `${{ env.MERGE_SHA }}`
+          * **Status Verifikasi:** ✅ CI Tests & Build Passed
+          EOF
+
+          if [ -n "$EDGE_CASES" ] && [ "$EDGE_CASES" != "- [ ] ..." ]; then
+            cat << 'EOF' >> comment.md
+
+          #### 💡 Catatan Tambahan / Edge Cases yang Diimplementasikan:
+          ${{ env.EDGE_CASES }}
+          EOF
+          fi
+
+          # Eksekusi penambahan komentar via gh CLI
+          if gh issue comment "$ISSUE_NUM" --repo "$DOCS_REPO" --body-file comment.md; then
+            echo "✅ Successfully synced PR merge details to $DOCS_REPO#$ISSUE_NUM"
+          else
+            echo "⚠️ Failed to post comment to $DOCS_REPO. Please verify DOCS_PAT secret permissions."
+          fi

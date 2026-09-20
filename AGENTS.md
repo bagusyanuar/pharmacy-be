@@ -42,3 +42,4 @@ Whenever you are writing, refactoring, or generating code in this repository:
 - [response.md](.agents/rules/response.md): Standardized JSON response envelope (`pkg/response`) — success, failure, and pagination meta.
 - [validation.md](.agents/rules/validation.md): Request DTO validation conventions using `pkg/validator` + `response.ValidateOrFail`.
 - [authentication.md](.agents/rules/authentication.md): JWT access & refresh token pattern, HttpOnly cookie handling, and middleware protection.
+- [pharmacy-docs-ssot.md](.agents/rules/pharmacy-docs-ssot.md): Single Source of Truth reference to PRD, DRA, TRD, naming conventions, and issue tracking in `pharmacy-docs`.
