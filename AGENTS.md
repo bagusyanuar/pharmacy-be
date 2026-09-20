@@ -34,6 +34,7 @@ Whenever you are writing, refactoring, or generating code in this repository:
 7. **Use Skill for Branch Creation**: When asked to create, checkout, or start a new git branch for a ticket, execute according to `.agents/skills/ticket-branch-creator/SKILL.md`.
 8. **Use Skill for Brainstorming & Open Questions**: When asked to clarify, brainstorm, or decide implementation methods/libraries for a ticket, execute according to `.agents/skills/ticket-clarifier/SKILL.md`.
 9. **Use Skill for Todo Scaffolding**: When asked to generate a technical todo list or execution plan for a ticket in `docs/todo/`, execute according to `.agents/skills/ticket-todo-generator/SKILL.md`.
+10. **Use Skill for Code Review**: When asked to review, audit code quality, check N+1 query optimization, or verify robustness, execute according to `.agents/skills/backend-code-reviewer/SKILL.md`.
 
 ## Rules Index
 
