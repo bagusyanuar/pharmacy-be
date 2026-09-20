@@ -1,0 +1,166 @@
+name: Gemini AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+jobs:
+  gemini_review:
+    name: Gemini Pro Architecture & Quality Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract PR Diff
+        id: get_diff
+        run: |
+          echo "=== Extracting PR Diff ==="
+          BASE_BRANCH="origin/${{ github.base_ref }}"
+          git fetch origin "${{ github.base_ref }}" --depth=1 || true
+
+          # Extract git diff
+          git diff "$BASE_BRANCH...HEAD" > pr_diff.txt || git diff HEAD~1 > pr_diff.txt
+
+          DIFF_SIZE=$(wc -c < pr_diff.txt)
+          echo "PR Diff size: $DIFF_SIZE bytes"
+
+          if [ "$DIFF_SIZE" -le 10 ]; then
+            echo "Empty diff detected. Skipping review."
+            echo "has_diff=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "has_diff=true" >> $GITHUB_OUTPUT
+
+          # Truncate if diff is larger than 70KB to prevent API token overflow
+          head -c 70000 pr_diff.txt > truncated_diff.txt
+          mv truncated_diff.txt pr_diff.txt
+
+      - name: Run Gemini Pro Review
+        if: steps.get_diff.outputs.has_diff == 'true'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "⚠️ GEMINI_API_KEY secret is not configured in repository secrets."
+            cat << 'EOF' > review_comment.md
+          ### 🤖 Gemini Pro Code Review (Skipped)
+          > [!WARNING]
+          > Rahasia `GEMINI_API_KEY` belum dikonfigurasi pada repositori ini.
+          > Tambahkan API Key di **Settings ➡️ Secrets and variables ➡️ Actions ➡️ GEMINI_API_KEY** untuk mengaktifkan audit kode otomatis dengan Gemini Pro.
+          EOF
+            gh pr comment "$PR_NUMBER" --body-file review_comment.md || true
+            exit 0
+          fi
+
+          echo "Sending code diff to Gemini API..."
+
+          # Build System Prompt with the 3 Core Pillars
+          cat << 'EOF' > system_prompt.txt
+          Anda adalah Senior Principal Go Architect & Security Auditor khusus sistem informasi farmasi (POS & ERP) dengan standar Clean Architecture dan Domain-Driven Design (DDD).
+          Tugas Anda adalah mengaudit git diff dari Pull Request ini secara sangat ketat berdasarkan 3 Pilar Audit Utama:
+
+          Pilar 1: Query & Performa Database (Anti N+1 & Indexing)
+          - DILARANG KERAS menjalankan kueri database di dalam loop (Anti N+1). Wajib menggunakan batch fetching GetByIDs(ctx, ids) dan in-memory map.
+          - Seluruh endpoint list WAJIB menerapkan paginasi (response.ParsePagination). Dilarang kueri tanpa batas.
+          - Hindari SELECT *, pilih kolom eksplisit (.Select).
+          - Semua pemanggilan GORM wajib merantai .WithContext(ctx).
+          - Kolom filter/join/sort wajib didukung indeks PostgreSQL (termasuk partial index WHERE deleted_at IS NULL).
+
+          Pilar 2: Ketahanan Kode (Robustness & Safe Transactions)
+          - Nil-Pointer Safety: Selalu cek if entity == nil sebelum dereference pointer.
+          - Multi-table write wajib dibungkus ACID transaction (db.Transaction).
+          - Sentinel errors di internal/modules/<domain>/domain/errors.go dan dicek dengan errors.Is.
+          - Error dibungkus dengan fmt.Errorf("%w", err).
+          - Validasi input DTO menggunakan response.ValidateOrFail.
+
+          Pilar 3: Clean Architecture & Invarian Farmasi
+          - Domain Independence: Layer domain/ DILARANG KERAS mengimpor gorm.io/gorm atau github.com/gofiber/fiber/v3.
+          - Multi-branch isolation: Setiap entitas cabang dan kueri wajib memfilter branch_id UUID dan memvalidasi header X-Branch-Id.
+          - Universal Audit Trail: 5 kolom audit lengkap (id, created_at, updated_at, created_by, deleted_at).
+          - Presisi Finansial: Uang menggunakan DECIMAL(12,2) / int64, dosis obat racikan menggunakan DECIMAL(10,3).
+          - Decoupling IAM vs Staf (BR-PHARM-AUTH-13): users (kredensial login) terpisah dari staff_profiles (data HR fisik, user_id nullable ON DELETE SET NULL).
+          - Output JSON seragam: pkg/response envelope { success, data, meta, error }.
+
+          Format Keluaran Review yang Wajib Anda Berikan (dalam bahasa Indonesia yang profesional):
+          1. 📊 Scorecard Ringkasan (Tabel 3 Pilar dengan status 🟢 PASSED / 🟡 WARNING / 🔴 CRITICAL).
+          2. 🔍 Temuan Utama (Sebutkan nama file, nomor baris, dan alasan teknisnya).
+          3. 💡 Rekomendasi Perbaikan Kode (Berikan contoh diff kode jika ada temuan).
+          EOF
+
+          # Format payload JSON untuk Gemini API
+          python3 - << 'PYEOF'
+          import json, os, urllib.request
+
+          api_key = os.environ.get("GEMINI_API_KEY")
+          with open("system_prompt.txt", "r", encoding="utf-8") as f:
+              system_prompt = f.read()
+
+          with open("pr_diff.txt", "r", encoding="utf-8", errors="ignore") as f:
+              diff_content = f.read()
+
+          prompt = f"{system_prompt}\n\nBerikut adalah Git Diff PR untuk diaudit:\n```diff\n{diff_content}\n```"
+
+          payload = {
+              "contents": [
+                  {
+                      "parts": [
+                          {"text": prompt}
+                      ]
+                  }
+              ],
+              "generationConfig": {
+                  "temperature": 0.2,
+                  "maxOutputTokens": 3000
+              }
+          }
+
+          # Coba model gemini-2.5-pro, fallback ke gemini-1.5-pro jika belum tersedia
+          models = ["gemini-2.5-pro", "gemini-1.5-pro"]
+          review_text = ""
+
+          for model in models:
+              url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+              req = urllib.request.Request(
+                  url,
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={"Content-Type": "application/json"}
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=120) as response:
+                      res_data = json.loads(response.read().decode("utf-8"))
+                      candidates = res_data.get("candidates", [])
+                      if candidates:
+                          parts = candidates[0].get("content", {}).get("parts", [])
+                          if parts:
+                              review_text = parts[0].get("text", "")
+                              print(f"Successfully generated review using model {model}")
+                              break
+              except Exception as e:
+                  print(f"Attempt with {model} failed: {e}")
+                  continue
+
+          if not review_text:
+              review_text = "⚠️ Gagal menghasilkan review dari Gemini Pro. Pastikan GEMINI_API_KEY valid."
+
+          with open("review_result.md", "w", encoding="utf-8") as out:
+              out.write("### 🤖 Gemini Pro Architectural & Quality Review\n\n")
+              out.write(review_text)
+              out.write("\n\n---\n*Review di-generate otomatis oleh **Gemini Pro** berdasarkan aturan arsitektur di `.agents/rules/`.*")
+
+          PYEOF
+
+          echo "Posting Gemini review comment to PR #$PR_NUMBER..."
+          gh pr comment "$PR_NUMBER" --body-file review_result.md || echo "Failed to post PR comment"
