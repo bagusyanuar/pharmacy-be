@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -11,10 +9,7 @@ import (
 
 // ConnectDatabase opens the database connection pool based on configuration.
 func ConnectDatabase(cfg *Config, log *zap.Logger) *gorm.DB {
-	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=%s",
-		cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort, cfg.DBSSLMode, cfg.DBTimeZone,
-	)
+	dsn := cfg.DSN()
 
 	gormLogLevel := gormlogger.Silent
 	if cfg.AppEnv == "development" {

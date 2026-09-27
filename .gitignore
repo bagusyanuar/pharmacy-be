@@ -1,6 +1,8 @@
 # Binaries & build files
 /bin
 /build
+/tmp
+air.log
 *.exe
 *.exe~
 *.dll

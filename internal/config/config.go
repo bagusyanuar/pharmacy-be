@@ -1,7 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"log"
+	"net/url"
 	"strings"
 	"time"
 
@@ -140,4 +142,18 @@ func parseCommaList(s string) []string {
 		}
 	}
 	return out
+}
+
+// DSN returns a robust PostgreSQL connection URL string.
+// Works seamlessly with GORM, lib/pq, and golang-migrate, handling empty passwords cleanly.
+func (c *Config) DSN() string {
+	var auth string
+	if c.DBPassword != "" {
+		auth = fmt.Sprintf("%s:%s@", url.QueryEscape(c.DBUser), url.QueryEscape(c.DBPassword))
+	} else if c.DBUser != "" {
+		auth = fmt.Sprintf("%s@", url.QueryEscape(c.DBUser))
+	}
+
+	return fmt.Sprintf("postgres://%s%s:%d/%s?sslmode=%s&timezone=%s",
+		auth, c.DBHost, c.DBPort, c.DBName, c.DBSSLMode, c.DBTimeZone)
 }
