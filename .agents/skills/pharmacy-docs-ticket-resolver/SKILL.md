@@ -101,8 +101,9 @@ Map the checklist items to the appropriate layers in `pharmacy-be`:
    * Fiber route handlers using `response.ValidateOrFail` and `response.Success` / `response.Fail`.
 6. **Dependency Wiring (`internal/bootstrap/`):**
    * Register new repositories, usecases, and handlers into `SetupApp`.
-7. **Seeders / Fixtures (`database/seeders/`):**
-   * Pre-seed default master data (e.g., standard roles, default branch, initial admin credentials).
+8. **Strict Bounded Context Separation (DDD):**
+   * Never bundle distinct business entities into a single generic module (e.g. putting `Branch` or `StaffProfile` inside `user`).
+   * Each business domain must have its own autonomous directory in `internal/modules/<domain>/` (e.g., `branch`, `staff`, `user`, `auth`).
 
 ---
 
@@ -110,6 +111,7 @@ Map the checklist items to the appropriate layers in `pharmacy-be`:
 
 Before finalizing, verify all changes against the core architectural invariants defined in `.agents/rules/pharmacy-docs-ssot.md` and `.agents/rules/architecture.md`:
 
+- [ ] **Autonomous Bounded Contexts:** Distinct domains live in separate `internal/modules/<domain>/` packages.
 - [ ] **Multi-Branch Isolation:** Every branch-specific entity has `branch_id UUID NOT NULL REFERENCES branches(id)`.
 - [ ] **Database Ubiquitous Language:** All tables/columns in `snake_case` English, except standard Indonesian regulatory terms (`sipa_number`, `strttk_number`, `is_apa`, `sia_number`, `satusehat_ihs_id`, `bpjs_card_number`, `nik`, `tuslah_fee`, `embalase_fee`).
 - [ ] **Universal Audit Trail:** 5 standard columns on every business entity table (`id`, `created_at`, `updated_at`, `created_by`, `deleted_at`).
@@ -126,6 +128,9 @@ Before finalizing, verify all changes against the core architectural invariants 
 ---
 
 ### Step 6: Verification & Proof of Work (PoW)
+
+> ⛔ **CRITICAL RESTRICTION: NO AUTOMATIC DOCKER SPAWN**
+> Never run `docker`, `docker-compose`, `docker compose up`, or attempt to start container daemons automatically during implementation or verification unless the user EXPLICITLY requests it. All standard verifications must run natively on the host using the Go toolchain.
 
 1. **Tidy dependencies:**
    ```bash

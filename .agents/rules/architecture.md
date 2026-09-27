@@ -95,3 +95,14 @@ When one module's entity references another's by foreign key (e.g. `order.user_i
    `OrderWithUser{*Order, User *UserSummary}`.
 4. **Batch-fetch for list endpoints (`GetByIDs`):**
    Collect unique foreign IDs, call `userRepo.GetByIDs(ctx, ids)` in a single query, map in-memory, and attach.
+
+## 8. Autonomous Bounded Contexts (DDD Separation)
+
+* Never combine distinct business domains into a single generic module (e.g. dumping `Branch` or `StaffProfile` into `user`).
+* Each bounded context must reside in its own autonomous module under `internal/modules/[module_name]/domain/`.
+* Entities representing physical structures (`branches`), HR records (`staff_profiles`, `pharmacist_profiles`), and digital IAM (`users`, `roles`) must be kept in separate bounded contexts.
+
+## 9. Docker Usage Policy
+
+* **FORBIDDEN** to run `docker`, `docker-compose`, `docker compose up`, or start containers automatically unless the user explicitly requests it.
+* Verification and tests must run natively on the host system using Go toolchain commands (`go test`, `go build`, CLI runners).
