@@ -22,7 +22,7 @@ func NewUserRepository(db *gorm.DB) domain.UserRepository {
 func (r *userRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
 	var user domain.User
 	err := r.db.WithContext(ctx).
-		Select("id", "email", "username", "password_hash", "is_active", "created_at", "updated_at", "deleted_at").
+		Select("id", "email", "password_hash", "pin_hash", "barcode_card", "role_id", "is_active", "created_at", "updated_at", "created_by", "deleted_at").
 		Where("id = ?", id).
 		First(&user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -37,7 +37,7 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (*domain.User, 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user domain.User
 	err := r.db.WithContext(ctx).
-		Select("id", "email", "username", "password_hash", "is_active", "created_at", "updated_at", "deleted_at").
+		Select("id", "email", "password_hash", "pin_hash", "barcode_card", "role_id", "is_active", "created_at", "updated_at", "created_by", "deleted_at").
 		Where("email = ?", email).
 		First(&user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -49,11 +49,11 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	return &user, nil
 }
 
-func (r *userRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
+func (r *userRepository) GetByBarcode(ctx context.Context, barcode string) (*domain.User, error) {
 	var user domain.User
 	err := r.db.WithContext(ctx).
-		Select("id", "email", "username", "password_hash", "is_active", "created_at", "updated_at", "deleted_at").
-		Where("username = ?", username).
+		Select("id", "email", "password_hash", "pin_hash", "barcode_card", "role_id", "is_active", "created_at", "updated_at", "created_by", "deleted_at").
+		Where("barcode_card = ?", barcode).
 		First(&user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, domain.ErrUserNotFound
@@ -71,7 +71,7 @@ func (r *userRepository) GetByIDs(ctx context.Context, ids []string) ([]*domain.
 
 	var users []*domain.User
 	err := r.db.WithContext(ctx).
-		Select("id", "email", "username", "password_hash", "is_active", "created_at", "updated_at", "deleted_at").
+		Select("id", "email", "password_hash", "pin_hash", "barcode_card", "role_id", "is_active", "created_at", "updated_at", "created_by", "deleted_at").
 		Where("id IN ?", ids).
 		Find(&users).Error
 	if err != nil {
@@ -88,7 +88,7 @@ func (r *userRepository) List(ctx context.Context, params response.PaginationPar
 
 	var users []*domain.User
 	err := r.db.WithContext(ctx).
-		Select("id", "email", "username", "is_active", "created_at", "updated_at").
+		Select("id", "email", "barcode_card", "role_id", "is_active", "created_at", "updated_at").
 		Offset(params.Offset()).
 		Limit(params.PerPage).
 		Order("created_at DESC").

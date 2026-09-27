@@ -7,7 +7,7 @@ import (
 // RegisterRequest is the body payload for POST /auth/register.
 type RegisterRequest struct {
 	Email    string `json:"email" validate:"required,email"`
-	Username string `json:"username" validate:"required,min=3,max=50"`
+	RoleID   string `json:"role_id" validate:"required,uuid4"`
 	Password string `json:"password" validate:"required,min=8,strongpassword"`
 }
 
@@ -25,17 +25,19 @@ type TokenResponse struct {
 
 // ProfileResponse represents the user's authenticated profile.
 type ProfileResponse struct {
-	ID       string `json:"id"`
-	Email    string `json:"email"`
-	Username string `json:"username"`
-	IsActive bool   `json:"is_active"`
+	ID          string  `json:"id"`
+	Email       string  `json:"email"`
+	BarcodeCard *string `json:"barcode_card,omitempty"`
+	RoleID      string  `json:"role_id"`
+	IsActive    bool    `json:"is_active"`
 }
 
 func toProfileResponse(user *userdomain.User) ProfileResponse {
 	return ProfileResponse{
-		ID:       user.ID,
-		Email:    user.Email,
-		Username: user.Username,
-		IsActive: user.IsActive,
+		ID:          user.ID,
+		Email:       user.Email,
+		BarcodeCard: user.BarcodeCard,
+		RoleID:      user.RoleID,
+		IsActive:    user.IsActive,
 	}
 }
