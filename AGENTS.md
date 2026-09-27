@@ -48,3 +48,4 @@ Whenever you are writing, refactoring, or generating code in this repository:
 - [validation.md](.agents/rules/validation.md): Request DTO validation conventions using `pkg/validator` + `response.ValidateOrFail`.
 - [authentication.md](.agents/rules/authentication.md): JWT access & refresh token pattern, HttpOnly cookie handling, and middleware protection.
 - [pharmacy-docs-ssot.md](.agents/rules/pharmacy-docs-ssot.md): Single Source of Truth reference to PRD, DRA, TRD, naming conventions, and issue tracking in `pharmacy-docs`.
+- [graphify.md](.agents/rules/graphify.md): Codebase knowledge graph navigation rules and query guidelines using Graphify.

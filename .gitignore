@@ -25,3 +25,6 @@ storage/uploads/*
 .vscode/
 *.swp
 *~
+
+# Knowledge Graph (Graphify)
+graphify-out/
