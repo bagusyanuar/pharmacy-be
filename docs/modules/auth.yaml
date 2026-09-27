@@ -1,0 +1,192 @@
+openapi: 3.0.3
+info:
+  title: Pharmacy API - Auth & Multi-Branch Module (TRD-01)
+  description: >-
+    Spesifikasi RESTful API Autentikasi Dual-UX, Fast POS Barcode/PIN, Web ERP,
+    Supervisor Override, dan Multi-Branch Switching untuk Sistem Informasi Apotek (POS & ERP).
+    Mengacu pada dokumen SSOT PRD-PHARM-01, DRA-PHARM-01, dan TRD-PHARM-01 di https://github.com/bagusyanuar/pharmacy-docs.
+  version: 1.0.0
+  contact:
+    name: Bagus Yanuar
+    url: https://github.com/bagusyanuar/pharmacy-docs
+servers:
+  - url: /
+    description: Current Server (Same-Origin)
+  - url: http://localhost:3000
+    description: Localhost Development Server
+  - url: http://127.0.0.1:3000
+    description: Local IP Development Server
+
+tags:
+  - name: POS Auth
+    description: Otentikasi kasir cepat barcode ID card & 6 digit numeric PIN, lock/unlock layar
+  - name: Web ERP Auth
+    description: Otentikasi back-office email & password, profile query, dan logout
+  - name: Supervisor Override
+    description: Otorisasi darurat supervisor kasir (Void transaksi, diskon manual, buka laci kas)
+  - name: Branch Switching
+    description: Perpindahan cabang aktif bagi pengguna multi-cabang (X-Branch-Id)
+
+paths:
+  /api/v1/auth/pos/fast-login:
+    post:
+      tags:
+        - POS Auth
+      summary: Fast POS Cashier Login (Barcode Card + 6-digit PIN)
+      description: >-
+        Otentikasi cepat untuk staf kasir apotek menggunakan barcode ID card dan 6 digit numeric PIN.
+        Memvalidasi penugasan cabang aktif dan hak akses kasir (`can_operate_pos = true`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - barcode_card
+                - pin
+                - branch_id
+              properties:
+                barcode_card:
+                  type: string
+                  example: "CARD-KASIR-01"
+                pin:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+                  example: "123456"
+                branch_id:
+                  type: string
+                  format: uuid
+                  example: "b0000000-0000-4000-8000-000000000001"
+      responses:
+        '200':
+          description: Kasir berhasil login. Mengembalikan Access Token JWT dan identitas shift.
+        '401':
+          description: PIN atau Barcode kartu salah.
+        '403':
+          description: Akun tidak memiliki penugasan atau wewenang buka kasir di cabang ini.
+
+  /api/v1/auth/pos/supervisor-override:
+    post:
+      tags:
+        - Supervisor Override
+      summary: Authorize Supervisor Override at POS Cashier (BR-PHARM-AUTH-12)
+      description: >-
+        Otorisasi supervisor untuk aksi kasir yang dibatasi (pembatalan item/void, diskon manual > plafon kasir, buka laci kas).
+        Mencatat rekam jejak permanen ke tabel `supervisor_override_logs`.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - supervisor_pin
+                - action_type
+                - reason_category
+              properties:
+                supervisor_pin:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+                  example: "888999"
+                action_type:
+                  type: string
+                  enum: [VOID_TRANSACTION, DELETE_ITEM, MANUAL_DISCOUNT, OPEN_DRAWER, PETTY_CASH]
+                  example: "VOID_TRANSACTION"
+                reason_category:
+                  type: string
+                  enum: [PATIENT_CANCEL, WRONG_INPUT, INSUFFICIENT_FUNDS, EMPLOYEE_DISCOUNT, OTHER]
+                  example: "PATIENT_CANCEL"
+                reason_notes:
+                  type: string
+                  example: "Pasien membatalkan pembelian karena salah bawa resep"
+                target_entity_type:
+                  type: string
+                  example: "SALE_ORDER"
+                target_entity_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Override disetujui. Log audit tersimpan.
+        '401':
+          description: PIN supervisor salah.
+        '403':
+          description: Pengguna supervisor tidak memiliki hak `can_supervisor_override = true`.
+
+  /api/v1/auth/switch-branch:
+    post:
+      tags:
+        - Branch Switching
+      summary: Switch Active Branch Context
+      description: >-
+        Beralih cabang aktif untuk pengguna yang memiliki multi-penugasan cabang (`user_branches`).
+        Memperbarui klaim cabang pada token akses baru.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - target_branch_id
+              properties:
+                target_branch_id:
+                  type: string
+                  format: uuid
+                  example: "b0000000-0000-4000-8000-000000000002"
+      responses:
+        '200':
+          description: Berhasil beralih cabang. Mengembalikan Access Token baru dengan target `branch_id`.
+        '403':
+          description: Pengguna tidak ditugaskan ke cabang tersebut.
+
+  /api/v1/auth/pos/lock:
+    post:
+      tags:
+        - POS Auth
+      summary: Lock Cashier Screen
+      description: Mengunci antarmuka POS kasir sementara tanpa menghapus sesi kasir aktif.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Layar kasir berhasil dikunci.
+
+  /api/v1/auth/pos/unlock:
+    post:
+      tags:
+        - POS Auth
+      summary: Unlock Cashier Screen (Re-enter 6-digit PIN)
+      description: Membuka kembali layar kasir yang terkunci dengan memasukkan kembali PIN kasir pemilik sesi.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - pin
+              properties:
+                pin:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+                  example: "123456"
+      responses:
+        '200':
+          description: Layar kasir berhasil dibuka.
+        '401':
+          description: PIN salah.
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

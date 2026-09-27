@@ -14,6 +14,25 @@ import (
 	applogger "github.com/bagusyanuar/pharmacy-be/pkg/logger"
 )
 
+// @title           Pharmacy Information System (POS & ERP) API
+// @version         1.0
+// @description     High-performance multi-branch pharmacy management REST API built with Go, Fiber v3, GORM, and PostgreSQL.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name    Pharmacy Engineering
+// @contact.url     https://github.com/bagusyanuar/pharmacy-be
+
+// @license.name    Proprietary
+// @license.url     https://github.com/bagusyanuar/pharmacy-be
+
+// @host            localhost:3000
+// @BasePath        /api/v1
+
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 Type "Bearer" followed by a space and your JWT token.
+
 func main() {
 	cfg := config.Load()
 

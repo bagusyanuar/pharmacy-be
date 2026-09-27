@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pharmacy POS & ERP API Documentation - Swagger UI</title>
+  <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5.18.2/favicon-32x32.png" sizes="32x32" />
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.18.2/swagger-ui.css" />
+  <style>
+    html {
+      box-sizing: border-box;
+      overflow: -moz-scrollbars-vertical;
+      overflow-y: scroll;
+    }
+    *, *:before, *:after {
+      box-sizing: inherit;
+    }
+    body {
+      margin: 0;
+      background: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .pharmacy-topbar {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      border-bottom: 2px solid #059669;
+    }
+    .pharmacy-topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+    .pharmacy-topbar-badge {
+      background: #047857;
+      color: #ecfdf5;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .pharmacy-topbar-nav {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+    }
+    .pharmacy-topbar-nav a {
+      color: #94a3b8;
+      text-decoration: none;
+      transition: color 0.2s ease;
+      font-weight: 500;
+    }
+    .pharmacy-topbar-nav a:hover {
+      color: #34d399;
+    }
+    #swagger-ui {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 16px 40px 16px;
+    }
+    .swagger-ui .topbar {
+      background: #1e293b;
+      padding: 10px 0;
+      border-bottom: 1px solid #334155;
+    }
+    .swagger-ui .topbar .download-url-wrapper .select-label {
+      color: #e2e8f0;
+    }
+    .swagger-ui .topbar .download-url-wrapper select {
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-weight: 500;
+    }
+    .swagger-ui .topbar .download-url-wrapper .download-url-button {
+      background: #059669;
+      border-radius: 6px;
+    }
+    .swagger-ui .topbar a {
+      display: none !important;
+    }
+    .swagger-ui .info {
+      margin: 24px 0;
+    }
+    .swagger-ui .scheme-container {
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header class="pharmacy-topbar">
+    <div class="pharmacy-topbar-brand">
+      <span>💊 Pharmacy ERP & POS System API</span>
+      <span class="pharmacy-topbar-badge">v1.0.0</span>
+    </div>
+    <nav class="pharmacy-topbar-nav">
+      <a href="/health" target="_blank">Health Check</a>
+      <a href="/docs/swagger.yaml" target="_blank">YAML Master</a>
+      <a href="https://github.com/bagusyanuar/pharmacy-docs" target="_blank">Docs SSOT</a>
+      <a href="https://github.com/bagusyanuar/pharmacy-be" target="_blank">GitHub Repo</a>
+    </nav>
+  </header>
+
+  <div id="swagger-ui"></div>
+
+  <script src="https://unpkg.com/swagger-ui-dist@5.18.2/swagger-ui-bundle.js" charset="UTF-8"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.18.2/swagger-ui-standalone-preset.js" charset="UTF-8"></script>
+  <script>
+    window.onload = function() {
+      const ui = SwaggerUIBundle({
+        urls: [
+          { url: "/docs/swagger.yaml", name: "🌟 Master Spec (All Features)" },
+          { url: "/docs/modules/auth.yaml", name: "🔐 Auth & Multi-Branch Module (TRD-01)" },
+          { url: "/docs/modules/user.yaml", name: "👤 User & Staff Management Module" }
+        ],
+        "urls.primaryName": "🌟 Master Spec (All Features)",
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        persistAuthorization: true,
+        filter: true,
+        displayRequestDuration: true,
+        tryItOutEnabled: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout"
+      });
+      window.ui = ui;
+    };
+  </script>
+</body>
+</html>

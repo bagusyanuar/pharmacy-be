@@ -1,0 +1,397 @@
+openapi: 3.0.3
+info:
+  title: Pharmacy Information System (POS & ERP) API
+  description: >-
+    Layanan RESTful API Backend untuk Sistem Informasi Apotek (POS & ERP Multi-Cabang).
+    Dibangun menggunakan Golang, Clean Architecture, Domain-Driven Design (DDD), Fiber v3, GORM, dan PostgreSQL 15+.
+    Seluruh kontrak data dan aturan bisnis merujuk ke SSOT di https://github.com/bagusyanuar/pharmacy-docs.
+  version: 1.0.0
+  contact:
+    name: Bagus Yanuar
+    url: https://github.com/bagusyanuar/pharmacy-be
+servers:
+  - url: /
+    description: Current Server (Same-Origin)
+  - url: http://localhost:3000
+    description: Localhost Development Server
+  - url: http://127.0.0.1:3000
+    description: Local IP Development Server
+
+tags:
+  - name: Health
+    description: Health check and service observability
+  - name: Auth
+    description: Web ERP login, POS Fast-Login, Refresh Token Rotation (RTR), and Session Management
+  - name: Users
+    description: IAM digital account management and profiles
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Service Health Check
+      description: Memeriksa status kesehatan server dan lingkungan runtime.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+              example:
+                success: true
+                message: service is healthy
+                data:
+                  status: ok
+                  env: development
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Web ERP Login (Email & Password)
+      description: >-
+        Otentikasi pengguna berbasis email dan password untuk aplikasi Web Back-Office ERP.
+        Menghasilkan Access Token JWT dan Refresh Token HttpOnly Cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login berhasil. Mengembalikan Access Token JWT.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Format payload JSON tidak valid atau validasi input gagal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Kredensial email atau password salah.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register New IAM User Account
+      description: Pendaftaran akun kredensial digital pengguna baru terikat pada `role_id`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Akun berhasil didaftarkan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '400':
+          description: Validasi format gagal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Email sudah terdaftar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Refresh Access Token
+      description: Menukar refresh token dari HttpOnly cookie untuk memperbarui access token.
+      responses:
+        '200':
+          description: Token berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Refresh token tidak valid atau telah kedaluwarsa.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v1/auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Get Current Authenticated Profile
+      description: Mengambil data profil akun pengguna yang sedang login berdasarkan Access Token.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profil berhasil diambil.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          description: Unauthorized / Token tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Logout Session
+      description: Menghapus sesi login dan menghapus cookie refresh token dari browser.
+      responses:
+        '200':
+          description: Berhasil logout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+
+  /api/v1/users:
+    get:
+      tags:
+        - Users
+      summary: List Users (Paginated)
+      description: Menampilkan daftar pengguna dengan paginasi baku `page` dan `per_page`.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Nomor halaman (default 1)
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          description: Jumlah data per halaman (default 20, max 100)
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Daftar pengguna berhasil diambil.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v1/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get User By ID
+      description: Mengambil rincian data pengguna berdasarkan UUID.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID pengguna
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail pengguna ditemukan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetailResponse'
+        '404':
+          description: Pengguna tidak ditemukan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Masukkan access token JWT dengan format 'Bearer <token>'
+
+  schemas:
+    SuccessEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "request processed successfully"
+        data:
+          type: object
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "The request body failed schema validation"
+            details:
+              type: object
+              additionalProperties: true
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 20
+        total_items:
+          type: integer
+          example: 45
+        total_pages:
+          type: integer
+          example: 3
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "admin@apoteksehat.id"
+        password:
+          type: string
+          format: password
+          example: "AdminSuper2026!"
+
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - role_id
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "kasir1@apoteksehat.id"
+        role_id:
+          type: string
+          format: uuid
+          example: "a0000000-0000-0000-0000-000000000004"
+        password:
+          type: string
+          format: password
+          example: "KasirApotek2026!"
+
+    TokenResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "login successful"
+        data:
+          type: object
+          properties:
+            access_token:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            token_type:
+              type: string
+              example: "Bearer"
+
+    ProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "profile fetched successfully"
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+              example: "c0000000-0000-4000-8000-000000000001"
+            email:
+              type: string
+              example: "admin@apoteksehat.id"
+            barcode_card:
+              type: string
+              nullable: true
+              example: "CARD-SA-01"
+            role_id:
+              type: string
+              format: uuid
+              example: "a0000000-0000-0000-0000-000000000001"
+            is_active:
+              type: boolean
+              example: true
+
+    UserDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ProfileResponse/properties/data'
+
+    UserListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProfileResponse/properties/data'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'

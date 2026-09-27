@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: Pharmacy API - User & Staff Management Module
+  description: >-
+    Spesifikasi RESTful API Manajemen Akun Pengguna IAM dan Master Data Staf HR Apotek (BR-PHARM-AUTH-13).
+  version: 1.0.0
+  contact:
+    name: Bagus Yanuar
+    url: https://github.com/bagusyanuar/pharmacy-docs
+servers:
+  - url: /
+    description: Current Server (Same-Origin)
+  - url: http://localhost:3000
+    description: Localhost Development Server
+  - url: http://127.0.0.1:3000
+    description: Local IP Development Server
+
+tags:
+  - name: Users
+    description: Pengelolaan akun pengguna digital IAM
+  - name: Staff Profiles
+    description: Master data profil fisik kepegawaian HR dan legalitas profesi SIPA/STRTTK
+
+paths:
+  /api/v1/users:
+    get:
+      tags:
+        - Users
+      summary: List IAM Users (Paginated)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Daftar pengguna berhasil diambil.
+
+  /api/v1/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get User By ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Data pengguna ditemukan.
+        '404':
+          description: Pengguna tidak ditemukan.
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

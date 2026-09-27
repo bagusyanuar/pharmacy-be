@@ -6,12 +6,12 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/bagusyanuar/pharmacy-be/docs"
 	"github.com/bagusyanuar/pharmacy-be/internal/config"
 	"github.com/bagusyanuar/pharmacy-be/internal/middleware"
 	authdelivery "github.com/bagusyanuar/pharmacy-be/internal/modules/auth/delivery"
 	authusecase "github.com/bagusyanuar/pharmacy-be/internal/modules/auth/usecase"
 	userdelivery "github.com/bagusyanuar/pharmacy-be/internal/modules/user/delivery"
-	userdomain "github.com/bagusyanuar/pharmacy-be/internal/modules/user/domain"
 	userinfra "github.com/bagusyanuar/pharmacy-be/internal/modules/user/infrastructure"
 	userusecase "github.com/bagusyanuar/pharmacy-be/internal/modules/user/usecase"
 	"github.com/bagusyanuar/pharmacy-be/pkg/jwt"
@@ -20,15 +20,8 @@ import (
 
 // SetupApp initializes and configures the Fiber application with all modules and middleware.
 func SetupApp(cfg *config.Config, db *gorm.DB, log *zap.Logger) *fiber.App {
-	// Auto migrate tables (useful in development)
-	if cfg.AppEnv == "development" {
-		if err := db.AutoMigrate(&userdomain.User{}); err != nil {
-			log.Warn("auto-migration warning", zap.Error(err))
-		}
-	}
-
 	app := fiber.New(fiber.Config{
-		AppName: "Go Backend Template API",
+		AppName: "Pharmacy Information System API",
 	})
 
 	// Middlewares
@@ -42,6 +35,41 @@ func SetupApp(cfg *config.Config, db *gorm.DB, log *zap.Logger) *fiber.App {
 			"status": "ok",
 			"env":    cfg.AppEnv,
 		})
+	})
+
+	// Swagger documentation specifications & interactive UI (embedded in binary)
+	app.Get("/docs/swagger.yaml", func(c fiber.Ctx) error {
+		content, err := docs.FS.ReadFile("swagger.yaml")
+		if err != nil {
+			return c.Status(fiber.StatusNotFound).SendString("documentation specification not found")
+		}
+		c.Set(fiber.HeaderContentType, "application/yaml")
+		return c.Send(content)
+	})
+	app.Get("/docs/modules/:name", func(c fiber.Ctx) error {
+		content, err := docs.FS.ReadFile("modules/" + c.Params("name"))
+		if err != nil {
+			return c.Status(fiber.StatusNotFound).SendString("module specification not found")
+		}
+		c.Set(fiber.HeaderContentType, "application/yaml")
+		return c.Send(content)
+	})
+	app.Get("/docs", func(c fiber.Ctx) error {
+		content, err := docs.FS.ReadFile("index.html")
+		if err != nil {
+			return c.Status(fiber.StatusNotFound).SendString("documentation page not found")
+		}
+		c.Set(fiber.HeaderContentType, "text/html; charset=utf-8")
+		return c.Send(content)
+	})
+	app.Get("/swagger", func(c fiber.Ctx) error {
+		return c.Redirect().Status(fiber.StatusFound).To("/docs")
+	})
+	app.Get("/swagger/*", func(c fiber.Ctx) error {
+		return c.Redirect().Status(fiber.StatusFound).To("/docs")
+	})
+	app.Get("/api-docs", func(c fiber.Ctx) error {
+		return c.Redirect().Status(fiber.StatusFound).To("/docs")
 	})
 
 	// Base API route group
