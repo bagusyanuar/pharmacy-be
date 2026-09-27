@@ -2,9 +2,14 @@ package password
 
 import "golang.org/x/crypto/bcrypt"
 
-// Hash generates a bcrypt hash from plaintext password.
+// Hash generates a bcrypt hash from plaintext password with default cost.
 func Hash(plain string) (string, error) {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
+	return HashWithCost(plain, bcrypt.DefaultCost)
+}
+
+// HashWithCost generates a bcrypt hash from plaintext password with a specified cost factor.
+func HashWithCost(plain string, cost int) (string, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(plain), cost)
 	if err != nil {
 		return "", err
 	}

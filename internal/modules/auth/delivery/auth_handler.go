@@ -50,7 +50,17 @@ func NewAuthHandler(
 	return h
 }
 
-// Register creates a new user account.
+// Register godoc
+// @Summary      Register new user
+// @Description  Register a new user account with role binding
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      RegisterRequest  true  "Register Request Payload"
+// @Success      201      {object}  response.Response{data=ProfileResponse}
+// @Failure      400      {object}  response.Response  "Invalid request body format or validation failure"
+// @Failure      409      {object}  response.Response  "Email already registered"
+// @Router       /auth/register [post]
 func (h *AuthHandler) Register(c fiber.Ctx) error {
 	var req RegisterRequest
 	if err := c.Bind().Body(&req); err != nil {
@@ -61,13 +71,10 @@ func (h *AuthHandler) Register(c fiber.Ctx) error {
 		return err
 	}
 
-	user, err := h.uc.Register(c.Context(), req.Email, req.Username, req.Password)
+	user, err := h.uc.Register(c.Context(), req.Email, req.RoleID, req.Password)
 	if err != nil {
 		if errors.Is(err, userdomain.ErrEmailAlreadyExists) {
 			return response.Fail(c, fiber.StatusConflict, "EMAIL_ALREADY_EXISTS", err.Error())
-		}
-		if errors.Is(err, userdomain.ErrUsernameAlreadyExists) {
-			return response.Fail(c, fiber.StatusConflict, "USERNAME_ALREADY_EXISTS", err.Error())
 		}
 		return response.Fail(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "failed to register user")
 	}
@@ -75,7 +82,18 @@ func (h *AuthHandler) Register(c fiber.Ctx) error {
 	return response.Success(c, fiber.StatusCreated, "user registered successfully", toProfileResponse(user))
 }
 
-// Login authenticates credentials and issues tokens.
+// Login godoc
+// @Summary      Web ERP Login
+// @Description  Authenticate using email and password to receive an Access Token and HttpOnly Refresh Cookie
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      LoginRequest  true  "Login Request Payload"
+// @Success      200      {object}  response.Response{data=TokenResponse}
+// @Failure      400      {object}  response.Response  "Invalid request body or validation failure"
+// @Failure      401      {object}  response.Response  "Invalid email or password"
+// @Failure      403      {object}  response.Response  "Account is inactive"
+// @Router       /auth/login [post]
 func (h *AuthHandler) Login(c fiber.Ctx) error {
 	var req LoginRequest
 	if err := c.Bind().Body(&req); err != nil {
@@ -104,7 +122,16 @@ func (h *AuthHandler) Login(c fiber.Ctx) error {
 	})
 }
 
-// Refresh issues a new token pair using the refresh token from cookie.
+// Refresh godoc
+// @Summary      Refresh Access Token
+// @Description  Exchange the HttpOnly refresh token cookie for a new access token
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Success      200      {object}  response.Response{data=TokenResponse}
+// @Failure      401      {object}  response.Response  "Invalid or expired refresh token"
+// @Failure      403      {object}  response.Response  "Account is inactive"
+// @Router       /auth/refresh [post]
 func (h *AuthHandler) Refresh(c fiber.Ctx) error {
 	refreshToken := c.Cookies(h.refreshTokenCookieName)
 	if refreshToken == "" {
@@ -129,7 +156,14 @@ func (h *AuthHandler) Refresh(c fiber.Ctx) error {
 	})
 }
 
-// Logout clears the refresh token cookie.
+// Logout godoc
+// @Summary      Logout Session
+// @Description  Clear the active user session and purge the refresh token cookie
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Success      200      {object}  response.Response
+// @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(c fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
 		Name:     h.refreshTokenCookieName,
@@ -143,7 +177,17 @@ func (h *AuthHandler) Logout(c fiber.Ctx) error {
 	return response.Success(c, fiber.StatusOK, "logged out successfully", nil)
 }
 
-// Me returns the profile of the current authenticated user.
+// Me godoc
+// @Summary      Get Authenticated User Profile
+// @Description  Retrieve profile details for the currently authenticated user
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200      {object}  response.Response{data=ProfileResponse}
+// @Failure      401      {object}  response.Response  "Unauthorized"
+// @Failure      404      {object}  response.Response  "User not found"
+// @Router       /auth/me [get]
 func (h *AuthHandler) Me(c fiber.Ctx) error {
 	userID, ok := c.Locals(string(jwt.Claims{}.UserID)).(string)
 	if !ok || userID == "" {

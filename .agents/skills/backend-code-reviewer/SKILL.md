@@ -52,6 +52,8 @@ Every piece of code submitted or modified must be evaluated against the followin
 ---
 
 ### Pillar 3: Clean Architecture & Pharmaceutical Invariants
+* **[CRITICAL] Autonomous Bounded Contexts (No Monolithic Domains):**
+  * Distinct business entities (e.g. `Branch`, `StaffProfile`, `User`, `Auth`) must be organized into their own dedicated modules (`internal/modules/<domain>/`), never dumped into a single generic module.
 * **[CRITICAL] Domain Independence:**
   * The `domain/` layer must NEVER import `github.com/gofiber/fiber/v3` or `gorm.io/gorm`.
   * Pure Go structs, interfaces, and standard library types only.

@@ -35,9 +35,11 @@ Whenever you are writing, refactoring, or generating code in this repository:
 8. **Use Skill for Brainstorming & Open Questions**: When asked to clarify, brainstorm, or decide implementation methods/libraries for a ticket, execute according to `.agents/skills/ticket-clarifier/SKILL.md`.
 9. **Use Skill for Todo Scaffolding**: When asked to generate a technical todo list or execution plan for a ticket in `docs/todo/`, execute according to `.agents/skills/ticket-todo-generator/SKILL.md`.
 10. **Use Skill for Code Review**: When asked to review, audit code quality, check N+1 query optimization, or verify robustness, execute according to `.agents/skills/backend-code-reviewer/SKILL.md`.
+11. **No Automatic Docker Spawn**: NEVER run `docker`, `docker-compose`, `docker compose up`, or start containers automatically unless explicitly instructed by the user. All code and test verification must be performed using local host toolchains (`go test`, `go build`).
+12. **Autonomous Bounded Contexts**: NEVER bundle distinct business entities (such as `Branch`, `StaffProfile`, `User`) into a single module. Organize each domain into its own autonomous bounded context directory in `internal/modules/<domain>/` according to DDD principles.
+13. **Use Skill for API Docs**: When documenting API endpoints, writing OpenAPI specifications, or updating Swagger UI, execute according to `.agents/skills/api-docs-generator/SKILL.md`.
 
 ## Rules Index
-
 - [architecture.md](.agents/rules/architecture.md): Complete guidelines for Directory Structure, Layers, Dependency Inversion, and Cross-Module Composition.
 - [naming-convention.md](.agents/rules/naming-convention.md): Rules for naming variables, structs, files, and interfaces across all layers.
 - [error-handling.md](.agents/rules/error-handling.md): Guidelines for custom sentinel errors, wrapping, and HTTP status code mapping.
@@ -48,3 +50,5 @@ Whenever you are writing, refactoring, or generating code in this repository:
 - [validation.md](.agents/rules/validation.md): Request DTO validation conventions using `pkg/validator` + `response.ValidateOrFail`.
 - [authentication.md](.agents/rules/authentication.md): JWT access & refresh token pattern, HttpOnly cookie handling, and middleware protection.
 - [pharmacy-docs-ssot.md](.agents/rules/pharmacy-docs-ssot.md): Single Source of Truth reference to PRD, DRA, TRD, naming conventions, and issue tracking in `pharmacy-docs`.
+- [graphify.md](.agents/rules/graphify.md): Codebase knowledge graph navigation rules and query guidelines using Graphify.
+- [api-docs-generator](.agents/skills/api-docs-generator/SKILL.md): Swaggo annotations, OpenAPI 3.0.3 YAML modular specs, and embedded Swagger UI documentation.

@@ -41,12 +41,9 @@ func NewAuthUsecase(
 }
 
 // Register creates a new user account and returns the created user entity.
-func (uc *AuthUsecase) Register(ctx context.Context, email, username, plainPassword string) (*userdomain.User, error) {
+func (uc *AuthUsecase) Register(ctx context.Context, email, roleID, plainPassword string) (*userdomain.User, error) {
 	if existing, _ := uc.userRepo.GetByEmail(ctx, email); existing != nil {
 		return nil, userdomain.ErrEmailAlreadyExists
-	}
-	if existing, _ := uc.userRepo.GetByUsername(ctx, username); existing != nil {
-		return nil, userdomain.ErrUsernameAlreadyExists
 	}
 
 	hash, err := password.Hash(plainPassword)
@@ -55,7 +52,7 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, plainPassw
 		return nil, err
 	}
 
-	newUser := userdomain.NewUser(email, username, hash)
+	newUser := userdomain.NewUser(email, hash, roleID)
 	if err := uc.userRepo.Create(ctx, newUser); err != nil {
 		uc.log.Error("failed to create user in repository", zap.Error(err))
 		return nil, err

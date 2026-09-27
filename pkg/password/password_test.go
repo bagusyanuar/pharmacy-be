@@ -20,3 +20,17 @@ func TestHashAndCompare(t *testing.T) {
 		t.Fatal("expected error for wrong password, got nil")
 	}
 }
+
+func TestHashWithCost(t *testing.T) {
+	plain := "AdminSuper2026!"
+	cost := 12
+
+	hash, err := HashWithCost(plain, cost)
+	if err != nil {
+		t.Fatalf("expected no error hashing password with cost %d, got %v", cost, err)
+	}
+
+	if err := Compare(hash, plain); err != nil {
+		t.Fatalf("expected password match, got error: %v", err)
+	}
+}

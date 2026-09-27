@@ -16,8 +16,8 @@ jobs:
         image: postgres:15-alpine
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
           POSTGRES_DB: pharmacy_db_test
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -50,7 +50,6 @@ jobs:
           DB_HOST: localhost
           DB_PORT: 5432
           DB_USER: postgres
-          DB_PASSWORD: password
           DB_NAME: pharmacy_db_test
           DB_SSLMODE: disable
         run: go test -v -race -coverprofile=coverage.out ./...
